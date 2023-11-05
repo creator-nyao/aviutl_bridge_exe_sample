@@ -62,90 +62,97 @@ fn main() -> Result<(), Box<std::io::Error>> {
         // refference to https://keens.github.io/blog/2016/12/01/rustdebaitoretsuwoatsukautokinotips/
 
         //読み込み
+
+        //本体データサイズ　読み込み
         let mut read_bytes :[u8; 4] = [0; 4];
+        let readable_length;
+        let use_size;
         match stdin_reader.read(&mut read_bytes) {
-            Ok(use_size) => {
+            Ok(tmp_use_size) => {
                 info!("communication start!");
+                readable_length = i32::from_le_bytes(read_bytes);
+                use_size = tmp_use_size;
+            },
+            Err(error) => {
+                error!("{}", &error);
+                return Err(Box::new(error));
+            },
+        }
+        info!("input data size: {}", &readable_length);
 
-                let readable_length = i32::from_le_bytes(read_bytes);
-                info!("input data size: {}", &readable_length);
-
-                if 1024 <= readable_length {
-                    let error: io::Error = std::io::Error::new(ErrorKind::InvalidData, format!("input data too big: {}", &readable_length));
+        if 1024 <= readable_length {
+            let error: io::Error = std::io::Error::new(ErrorKind::InvalidData, format!("input data too big: {}", &readable_length));
+            error!("{}", &error);
+            return Err(Box::new(error));
+        }
+        
+        //本体データ読み込み
+        let mut buffer = vec![0; readable_length as usize];
+        if 0 < use_size {
+            match stdin_reader.read(&mut buffer) {
+                Ok(use_size) => {
+                    if use_size == 0 {
+                        let error = std::io::Error::new(ErrorKind::InvalidData, "cannot read input data");
+                        error!("{}", &error);
+                        return Err(Box::new(error));
+                    }
+                },
+                Err(error) => {
                     error!("{}", &error);
                     return Err(Box::new(error));
-                }
-                
-                if 0 < use_size {
-                    let mut buffer = vec![0; readable_length as usize];
-                    match stdin_reader.read(&mut buffer) {
-                        Ok(use_size) => {
-                            if use_size == 0 {
-                                let error = std::io::Error::new(ErrorKind::InvalidData, "cannot read input data");
-                                error!("{}", &error);
-                                return Err(Box::new(error));
-                            }
-                            info!("input data: {}", std::str::from_utf8(&buffer).unwrap());
-                            info!("input success!");
-                        },
-                        Err(error) => {
-                            error!("{}", &error);
-                            return Err(Box::new(error));
-                        },
-                    }
-                }
+                },
+            }
+        }
+        info!("input data: {}", std::str::from_utf8(&buffer).unwrap());
+        info!("input success!");
 
 
 
 
 
-                //書き込み
-                let out_message = format!("Hello world {}", i);
-                let out_message_size = &out_message.clone().len();
-                
-                info!("output data size: {}", &out_message_size);
-                info!("output data: {}", &out_message);
-
-                match stdout_writer.write(&out_message_size.to_le_bytes()) {
-                    Ok(_) => {
-                        let out_message_bytes ;
-                        // //シフトJISへのエンコード
-                        // match WINDOWS_31J.encode(&out_message.clone(), EncoderTrap::Ignore) {
-                        //     Ok(bytes) => {
-                        //         out_message_bytes = bytes;
-                        //     }
-                        //     Err(out_messgage_for_error) => {
-                        //         let error: io::Error = std::io::Error::new(ErrorKind::InvalidData, format!("SHTFT-JISへのエンコードに失敗しました。: {}", &out_messgage_for_error));
-                        //         error!("{}", &error);
-                        //         return Err(Box::new(error));
-                        //     }
-                        // }
-
-
-                        let out_message_for_c = CString::new(out_message.as_str()).expect("Conversion to Cstring failed.");
-                        out_message_bytes = out_message_for_c.to_bytes_with_nul();
+        //書き込み
+        let out_message = format!("Hello world {}", i);
+        let out_message_size = &out_message.clone().len();
         
+        info!("output data size: {}", &out_message_size);
+        info!("output data: {}", &out_message);
+
+        //本体データサイズ　書き込み
+        match stdout_writer.write(&out_message_size.to_le_bytes()) {
+            Ok(_) => {},
+            Err(error) => {
+                error!("{}", &error);
+                return Err(Box::new(error));
+            }
+        }
+        
+
+        //本体データ　書き込み
+        let out_message_bytes ;
+        // //シフトJISへのエンコード
+        // match WINDOWS_31J.encode(&out_message.clone(), EncoderTrap::Ignore) {
+        //     Ok(bytes) => {
+        //         out_message_bytes = bytes;
+        //     }
+        //     Err(out_messgage_for_error) => {
+        //         let error: io::Error = std::io::Error::new(ErrorKind::InvalidData, format!("SHTFT-JISへのエンコードに失敗しました。: {}", &out_messgage_for_error));
+        //         error!("{}", &error);
+        //         return Err(Box::new(error));
+        //     }
+        // }
+
+
+        let out_message_for_c = CString::new(out_message.as_str()).expect("Conversion to Cstring failed.");
+        out_message_bytes = out_message_for_c.to_bytes_with_nul();
+
 
 // error!("input data: {}", std::str::from_utf8(&out_message_bytes).unwrap());
 // error!("Result: {}", out_message_bytes.iter().map(|x| format!("{:02X}", x)).collect::<String>());
 
-                        // out_message_bytes = out_message.clone().into_bytes();
-                        match stdout_writer.write(&out_message_bytes) {
-                            Ok(_) => {
-                                info!("output success!");
-                            },
-                            Err(error) => {
-                                error!("{}", &error);
-                                return Err(Box::new(error));
-                            },
-                        }
-                    },
-                    Err(error) => {
-                        error!("{}", &error);
-                        return Err(Box::new(error));
-                    }
-                }
-
+        // out_message_bytes = out_message.clone().into_bytes();
+        match stdout_writer.write(&out_message_bytes) {
+            Ok(_) => {
+                info!("output success!");
             },
             Err(error) => {
                 error!("{}", &error);
