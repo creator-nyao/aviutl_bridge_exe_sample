@@ -62,14 +62,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // refference to https://keens.github.io/blog/2016/12/01/rustdebaitoretsuwoatsukautokinotips/
 
         //読み込み
-{
+        
         //本体データサイズ　読み込み
         let mut read_bytes :[u8; 4] = [0; 4];
         let readable_length;
         let use_size;
-		
-// let mut stdin_reader = BufReader::new(File::open("__test")?);
-
         match stdin_reader.read(&mut read_bytes) {
             Ok(tmp_use_size) => {
                 info!("communication start!");
@@ -110,7 +107,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("input success!");
 
 
-}
 
 
         //書き込み
@@ -121,7 +117,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("output data: {}", &out_message);
 
         //本体データサイズ　書き込み
-// let mut stdout_writer = BufWriter::new(File::create("__test")?);
         match stdout_writer.write(&out_message_size.to_le_bytes()) {
             Ok(_) => {},
             Err(error) => {
@@ -133,26 +128,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         //本体データ　書き込み
         let out_message_bytes ;
-        // //シフトJISへのエンコード
-        // match WINDOWS_31J.encode(&out_message.clone(), EncoderTrap::Ignore) {
-        //     Ok(bytes) => {
-        //         out_message_bytes = bytes;
-        //     }
-        //     Err(out_messgage_for_error) => {
-        //         let error: io::Error = std::io::Error::new(ErrorKind::InvalidData, format!("SHTFT-JISへのエンコードに失敗しました。: {}", &out_messgage_for_error));
-        //         error!("{}", &error);
-        //         return Err(Box::new(error));
-        //     }
-        // }
-
-
-        // let out_message_for_c = CString::new(out_message.as_str()).expect("Conversion to Cstring failed.");
-        // out_message_bytes = out_message_for_c.to_bytes_with_nul();
-
-
-// error!("input data: {}", std::str::from_utf8(&out_message_bytes).unwrap());
-// error!("Result: {}", out_message_bytes.iter().map(|x| format!("{:02X}", x)).collect::<String>());
-
         out_message_bytes = out_message.clone().into_bytes();
         match stdout_writer.write(&out_message_bytes) {
             Ok(_) => {
@@ -164,17 +139,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         }
 
-// match String::from_utf8(out_message_bytes) {
-//     Ok(str) => {
-//         error!("value from bytes: {}", str);
-//     },
-//     Err(error) => {
-//         error!("{}", &error);
-//         return Err(Box::new(error));
-//     },
-// }
-
-        
         match stdout_writer.flush() {
             Ok(_) => {
                 info!("beffer flush!");
@@ -187,37 +151,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         info!("communication end!");
-
-
-
-        
-        
-
-
-        
-
-
-
-
-
-        // for result in BufReader::new(io::stdin()).bytes() {
-        //     let byte = result?;
-        //     writer.write_all(&[byte])?;
-        // }
-
-
-        // match f.read(){
-        //     // let byte = bef.bytes();
-        //     // 以下の資料を参考に、一回だけ指定のサイズのデータをバイナリで読み込むのをやってみよう。
-        //     // https://doc.rust-lang.org/std/io/struct.BufReader.html
-        //     // https://doc.rust-lang.org/std/io/trait.Read.html#tymethod.read
-
-        // }
-
-        // for result in bef.bytes() {
-        //     let byte = result?;
-        //     stdout.write_all(&[byte])?;
-        // }
     }
     
     info!("down!");
