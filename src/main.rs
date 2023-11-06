@@ -35,7 +35,7 @@ struct pixel {
     a: u8,
 }
 
-fn main() -> Result<(), Box<std::io::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     //ログ設定
     CombinedLogger::init(
         vec![
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<std::io::Error>> {
 
     //書き込み準備
     // let stdout = io::stdout().lock();
-    let stdout = io::stdout();
+    let stdout: io::Stdout = io::stdout();
     let mut stdout_writer = BufWriter::new(stdout);
 
     //読み込み準備
@@ -62,11 +62,14 @@ fn main() -> Result<(), Box<std::io::Error>> {
         // refference to https://keens.github.io/blog/2016/12/01/rustdebaitoretsuwoatsukautokinotips/
 
         //読み込み
-
+{
         //本体データサイズ　読み込み
         let mut read_bytes :[u8; 4] = [0; 4];
         let readable_length;
         let use_size;
+		
+// let mut stdin_reader = BufReader::new(File::open("__test")?);
+
         match stdin_reader.read(&mut read_bytes) {
             Ok(tmp_use_size) => {
                 info!("communication start!");
@@ -107,17 +110,18 @@ fn main() -> Result<(), Box<std::io::Error>> {
         info!("input success!");
 
 
-
+}
 
 
         //書き込み
         let out_message = format!("Hello world {}", i);
-        let out_message_size = &out_message.clone().len();
+        let out_message_size:i32 = out_message.clone().len() as i32;
         
         info!("output data size: {}", &out_message_size);
         info!("output data: {}", &out_message);
 
         //本体データサイズ　書き込み
+// let mut stdout_writer = BufWriter::new(File::create("__test")?);
         match stdout_writer.write(&out_message_size.to_le_bytes()) {
             Ok(_) => {},
             Err(error) => {
@@ -142,14 +146,14 @@ fn main() -> Result<(), Box<std::io::Error>> {
         // }
 
 
-        let out_message_for_c = CString::new(out_message.as_str()).expect("Conversion to Cstring failed.");
-        out_message_bytes = out_message_for_c.to_bytes_with_nul();
+        // let out_message_for_c = CString::new(out_message.as_str()).expect("Conversion to Cstring failed.");
+        // out_message_bytes = out_message_for_c.to_bytes_with_nul();
 
 
 // error!("input data: {}", std::str::from_utf8(&out_message_bytes).unwrap());
 // error!("Result: {}", out_message_bytes.iter().map(|x| format!("{:02X}", x)).collect::<String>());
 
-        // out_message_bytes = out_message.clone().into_bytes();
+        out_message_bytes = out_message.clone().into_bytes();
         match stdout_writer.write(&out_message_bytes) {
             Ok(_) => {
                 info!("output success!");
@@ -159,6 +163,17 @@ fn main() -> Result<(), Box<std::io::Error>> {
                 return Err(Box::new(error));
             },
         }
+
+// match String::from_utf8(out_message_bytes) {
+//     Ok(str) => {
+//         error!("value from bytes: {}", str);
+//     },
+//     Err(error) => {
+//         error!("{}", &error);
+//         return Err(Box::new(error));
+//     },
+// }
+
         
         match stdout_writer.flush() {
             Ok(_) => {
