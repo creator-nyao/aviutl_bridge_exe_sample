@@ -1,0 +1,2 @@
+# aviutl_bridge_exe_sample
+AviUtlのbridge.dllのサンプルソース
