@@ -1,2 +1,2 @@
 # aviutl_bridge_exe_sample
-AviUtlのbridge.dllのサンプルソース
+rustによって書かれた、AviUtlのbridge.dllを使用したサンプルソース
