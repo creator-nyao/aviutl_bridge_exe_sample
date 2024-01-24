@@ -50,14 +50,14 @@ fn process() -> Result<(), Box<dyn std::error::Error>> {
     CombinedLogger::init(
         vec![
             // TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
-            WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
-            WriteLogger::new(LevelFilter::Error, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
-            WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
-            WriteLogger::new(LevelFilter::Debug, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
-            WriteLogger::new(LevelFilter::Trace, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
-            WriteLogger::new(LevelFilter::Info, Config::default(), File::create("aviutl_bridge_exe_sample.log").unwrap()),
+            WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
+            WriteLogger::new(LevelFilter::Error, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
+            WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
+            WriteLogger::new(LevelFilter::Debug, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
+            WriteLogger::new(LevelFilter::Trace, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
+            WriteLogger::new(LevelFilter::Info, Config::default(), File::create("aviutl_bridge_exe_sample.log")?),
         ]
-    ).unwrap();
+    )?;
 
     info!("up!");
 
@@ -114,21 +114,59 @@ fn process() -> Result<(), Box<dyn std::error::Error>> {
                 },
             }
         }
-        info!("input data: {}", std::str::from_utf8(&buffer).unwrap());
+        info!("input data: {}", std::str::from_utf8(&buffer)?);
         info!("input success!");
 
         //ファイルマッピングオブジェクトの読み込み・書き込み
         match env::var("BRIDGE_FMO") {
-            Ok(fmo_name) => {
+            Ok(mut fmo_name) => {
                 info!("fmo_name: {}", &fmo_name);
                 info!("FileMappingObject process start.");
 
                 unsafe{
-                    let fmo = OpenFileMappingA(
-                        FILE_MAP_ALL_ACCESS.0,
-                        false,
-                        windows::core::PCSTR{0: fmo_name.as_ptr() as *const u8},
-                    ).unwrap();
+                    let mut fmo_any  = None;
+                    for _ in 1..=100{
+                        //ファイルマッピングオブジェクト　オープン
+                        match OpenFileMappingA(
+                            FILE_MAP_ALL_ACCESS.0,
+                            false,
+                            windows::core::PCSTR{0: fmo_name.as_ptr() as *const u8},
+                        ) {
+                            Ok(handle) => {
+                                fmo_any = Some(handle);
+                                break;
+                            },
+                            Err(error) => {
+                                error!("{}", error);
+                            }
+                        };
+
+                        //ファイル名　再読み込み
+                        info!("ファイルマッピングオブジェクトが開けない為、ファイル名を読み込み直します。");
+                        match env::var("BRIDGE_FMO") {
+                            Ok(loaded_fmo_name) =>{
+                                fmo_name = loaded_fmo_name;
+                                info!("fmo_name:{}", &fmo_name);
+                            },
+                            Err(error) => {
+                                error!("{}", &error);
+                                error!("ファイル名の読み込みに失敗しました。");
+                            }
+                        }
+                        let stop_time = std::time::Duration::from_millis(100);
+                        std::thread::sleep(stop_time);
+                    }
+                    let fmo = match fmo_any {
+                        Some(handle) => {
+                            handle
+                        },
+                        None => {
+                            let error_text = "100回試行しましたが、FileMappingObjectのファイル名が見つかりませんでした。";
+                            error!("{}", &error_text);
+                            let error = std::io::Error::new(ErrorKind::InvalidData, error_text);
+                            return Err(Box::new(error));
+                        }
+                    };
 
                     info!("fmo open success!");
 
