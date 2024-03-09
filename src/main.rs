@@ -28,7 +28,7 @@ struct share_mem_header {
 
 //
 #[repr(C)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize,Copy,Clone)]
 struct pixel {
     b: u8,
     g: u8,
@@ -213,8 +213,8 @@ fn process() -> Result<(), Box<dyn std::error::Error>> {
                     let first_pointer = view_address.Value;
                     let header = first_pointer as *mut share_mem_header;
                     info!("header:{:?}", *header);
-                    let mut pixel = first_pointer.byte_offset((*header).header_size as isize) as *mut pixel;
-                    info!("first_pixel:{:?}", *pixel);
+                    let mut pixel_pointer = first_pointer.byte_offset((*header).header_size as isize) as *mut pixel;
+                    info!("first_pixel:{:?}", *pixel_pointer);
 
                     let height = (*header).height;
                     let width = (*header).width;
@@ -223,12 +223,17 @@ fn process() -> Result<(), Box<dyn std::error::Error>> {
 
                     for y in 0..height{
                         for x in 0..width{
-                            let alpha_f64 = (*pixel).a as f64;
-                            (*pixel).a = (alpha_f64 * (y as f64) / (height as f64)) as u8;
+                            let mut pixel = (*pixel_pointer) as pixel;
+                            
+                            let alpha_f64 = pixel.a as f64;
+                            pixel.a = (alpha_f64 * (y as f64) / (height as f64)) as u8;
+
+                            let pixel = &pixel as *const pixel;
+                            pixel_pointer.copy_from_nonoverlapping(pixel, 1);
 
                             if y <= height - 1  && x <= width - 2{
                                 //最後のループ以外
-                                pixel = pixel.offset(1);
+                                pixel_pointer = pixel_pointer.offset(1);
                             }
                         }
                     }
