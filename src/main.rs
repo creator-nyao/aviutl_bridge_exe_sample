@@ -36,6 +36,30 @@ struct pixel {
     a: u8,
 }
 
+// use std::mem;
+
+// #[repr(C)]
+// #[derive(Debug)]
+// struct Test {
+//     a: u8,
+//     b: String,
+// }
+
+// impl Test {
+//     fn get_raw_bytes_with_size<T: ?Sized>(p: &T, size: usize) -> Vec<u8> {
+//         let mut buf = Vec::with_capacity(size);
+//         let view = p as *const _ as *const u8;
+//         for i in 0..size {
+//             buf.push(unsafe {*view.offset(i as isize)});
+//         }
+//         buf
+//     }
+    
+//     fn get_raw_bytes(&self) -> Vec<u8> {
+//         Self::get_raw_bytes_with_size(self, mem::size_of::<Self>())
+//     }
+// }
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let result = process();
     if let Err(error) = &result{
@@ -114,6 +138,12 @@ fn process() -> Result<(), Box<dyn std::error::Error>> {
                 },
             }
         }
+        info!("input data: {:?}", buffer);
+        // let test = Test{
+        //     a: 32,
+        //     b: String::from("_test"),
+        // };
+        // info!("{:?}", test.get_raw_bytes());
         info!("input data: {}", std::str::from_utf8(&buffer)?);
         info!("input success!");
 
